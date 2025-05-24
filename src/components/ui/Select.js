@@ -6,6 +6,7 @@ const Select = ({ label, id, value, onChange, options, required = false, classNa
       <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
+        }
       </label>
       <select
         id={id}
@@ -30,6 +31,7 @@ const Select = ({ label, id, value, onChange, options, required = false, classNa
         ))}
       </select>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      }
     </div>
   );
 };
