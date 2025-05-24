@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle, XCircle } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
@@ -8,25 +8,25 @@ import Button from '../../../components/ui/Button';
 import { generateId } from '../../../utils/helpers';
 
 const HouseFormModal = ({ isOpen, onClose, onSubmit, existingHouse }) => {
-    const getInitialFormData = () => {
+    const getInitialFormData = useCallback(() => {
         const baseData = { name: '', address: '', type: 'Shared House', rooms: 1, notes: '', units: [] };
         if (existingHouse) {
             return { 
-                 ...baseData, 
-                 ...existingHouse,
-                 units: existingHouse.units ? JSON.parse(JSON.stringify(existingHouse.units)) : [],
+                ...baseData, 
+                ...existingHouse,
+                units: existingHouse.units ? JSON.parse(JSON.stringify(existingHouse.units)) : [],
                 rooms: existingHouse.type === 'Multi-Unit House' ? (existingHouse.rooms || 1) : (existingHouse.rooms || 1)
             };
         }
         return baseData;
-    };
+    }, [existingHouse]);
 
     const [formData, setFormData] = useState(getInitialFormData());
     const [newUnit, setNewUnit] = useState({ number: '', size: '', notes: '' });
 
     useEffect(() => {
         setFormData(getInitialFormData());
-    }, [existingHouse, isOpen]);
+    }, [getInitialFormData, isOpen]);
 
     const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -44,7 +44,8 @@ const HouseFormModal = ({ isOpen, onClose, onSubmit, existingHouse }) => {
         setFormData({ ...formData, units: [...formData.units, { ...newUnit, id: generateId() }] });
         setNewUnit({ number: '', size: '', notes: '' });
     };
-     const handleNewUnitChange = e => setNewUnit({ ...newUnit, [e.target.name]: e.target.value });
+
+    const handleNewUnitChange = e => setNewUnit({ ...newUnit, [e.target.name]: e.target.value });
 
     const handleRemoveUnit = (index) => {
         const updatedUnits = formData.units.filter((_, i) => i !== index);
@@ -52,7 +53,7 @@ const HouseFormModal = ({ isOpen, onClose, onSubmit, existingHouse }) => {
     };
 
     const handleSubmit = e => { 
-         e.preventDefault();
+        e.preventDefault();
         const dataToSubmit = { ...formData };
         dataToSubmit.units = dataToSubmit.type === 'Multi-Unit House' ? (dataToSubmit.units || []) : null;
         dataToSubmit.rooms = dataToSubmit.type !== 'Multi-Unit House' ? (parseInt(dataToSubmit.rooms, 10) || 1) : null;
@@ -61,9 +62,9 @@ const HouseFormModal = ({ isOpen, onClose, onSubmit, existingHouse }) => {
 
     const houseTypeOptions = [
         { value: 'Shared House', label: 'Shared House (Rooms)' }, 
-         { value: 'Multi-Unit House', label: 'Multi-Unit House (Apartments/Flats)' },
+        { value: 'Multi-Unit House', label: 'Multi-Unit House (Apartments/Flats)' },
         { value: 'Single Family Home', label: 'Single Family Home' }, 
-         { value: 'Student Housing', label: 'Student Housing (Rooms)' },
+        { value: 'Student Housing', label: 'Student Housing (Rooms)' },
         { value: 'Townhouse', label: 'Townhouse' },
         { value: 'Condominium', label: 'Condominium Unit' }
     ];
@@ -76,7 +77,7 @@ const HouseFormModal = ({ isOpen, onClose, onSubmit, existingHouse }) => {
                     <Select label="House Type" id="type" name="type" value={formData.type} onChange={handleChange} options={houseTypeOptions} required />
                 </div>
                 <Input label="Address" id="address" name="address" value={formData.address} onChange={handleChange} required />
-                                 {formData.type !== 'Multi-Unit House' && (
+                {formData.type !== 'Multi-Unit House' && (
                     <Input label="Number of Rooms" id="rooms" name="rooms" type="number" value={formData.rooms || 1} onChange={handleChange} required min="1" />
                 )}
                 {formData.type === 'Multi-Unit House' && (
