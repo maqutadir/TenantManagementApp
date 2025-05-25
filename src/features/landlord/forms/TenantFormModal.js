@@ -5,10 +5,10 @@ import Button from '../../../components/ui/Button';
 
 const TenantFormModal = ({ isOpen, onClose, onSubmit, existingTenant }) => {
     const [formData, setFormData] = useState({ 
-      name: '', 
-      email: '', 
-      phone: '', 
-      password: '' 
+        name: '', 
+        email: '', 
+        phone: '', 
+        password: 'tenant123' // Default password for new tenants
     });
 
     useEffect(() => {
@@ -17,25 +17,35 @@ const TenantFormModal = ({ isOpen, onClose, onSubmit, existingTenant }) => {
                 name: existingTenant.name || '',
                 email: existingTenant.email || '',
                 phone: existingTenant.phone || '',
-                password: '' // Password field is only for new tenants
+                password: 'tenant123' // Not used for existing tenants
             });
         } else {
-            setFormData({ name: '', email: '', phone: '', password: '' });
+            setFormData({ 
+                name: '', 
+                email: '', 
+                phone: '', 
+                password: 'tenant123' 
+            });
         }
     }, [existingTenant, isOpen]);
 
     const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+    
     const handleSubmit = e => { 
         e.preventDefault(); 
+        if (!existingTenant && (!formData.email || !formData.password)) {
+            alert('Email and password are required for new tenants');
+            return;
+        }
         onSubmit(formData); 
     };
 
     return (
         <Modal 
-          isOpen={isOpen} 
-          onClose={onClose} 
-          title={existingTenant ? `Edit Tenant: ${existingTenant.name}` : 'Create New Tenant'} 
-          size="lg"
+            isOpen={isOpen} 
+            onClose={onClose} 
+            title={existingTenant ? `Edit Tenant: ${existingTenant.name}` : 'Create New Tenant'} 
+            size="lg"
         >
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input 
@@ -57,16 +67,9 @@ const TenantFormModal = ({ isOpen, onClose, onSubmit, existingTenant }) => {
                             onChange={handleChange} 
                             required 
                         />
-                        <Input 
-                            label="Password" 
-                            id="password" 
-                            name="password" 
-                            type="password" 
-                            value={formData.password} 
-                            onChange={handleChange} 
-                            required={!existingTenant}
-                            placeholder="Minimum 6 characters" 
-                        />
+                        <div className="text-sm text-gray-500 mb-4">
+                            Default password will be set for the tenant: tenant123
+                        </div>
                     </>
                 )}
                 <Input 

@@ -11,7 +11,6 @@ export const getProfileById = async (userId) => {
 };
 
 export const getAllProfiles = async () => {
-  // This will only return profiles the user has access to based on RLS policies
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -22,7 +21,8 @@ export const getAllProfiles = async () => {
 export const createTenantProfile = async (tenantData, landlordId) => {
   if (!landlordId) return { data: null, error: { message: "Landlord ID is required." } };
   
-  const { data, error } = await supabase.auth.admin.createUser({
+  // First, create the auth user
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: tenantData.email,
     password: tenantData.password,
     email_confirm: true,
@@ -32,12 +32,16 @@ export const createTenantProfile = async (tenantData, landlordId) => {
     }
   });
 
-  if (error) return { data: null, error };
+  if (authError) {
+    console.error("Auth error:", authError);
+    return { data: null, error: authError };
+  }
 
+  // Then create the profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .insert([{
-      id: data.user.id,
+      id: authData.user.id,
       email: tenantData.email,
       name: tenantData.name,
       phone: tenantData.phone,
@@ -46,7 +50,13 @@ export const createTenantProfile = async (tenantData, landlordId) => {
     }])
     .select();
 
-  if (profileError) return { data: null, error: profileError };
+  if (profileError) {
+    console.error("Profile error:", profileError);
+    // Try to clean up the auth user if profile creation fails
+    await supabase.auth.admin.deleteUser(authData.user.id);
+    return { data: null, error: profileError };
+  }
+
   return { data: profile[0], error: null };
 };
 
@@ -62,9 +72,24 @@ export const updateProfile = async (userId, profileData) => {
 
 export const deleteProfile = async (userId) => {
   if (!userId) return { data: null, error: { message: "User ID is required for deletion." } };
-  const { data, error } = await supabase
+  
+  // First delete the profile
+  const { error: profileError } = await supabase
     .from('profiles')
     .delete()
     .eq('id', userId);
-  return { data, error };
+
+  if (profileError) {
+    return { data: null, error: profileError };
+  }
+
+  // Then delete the auth user
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    console.error("Failed to delete auth user:", authError);
+    return { data: null, error: authError };
+  }
+
+  return { data: null, error: null };
 };
