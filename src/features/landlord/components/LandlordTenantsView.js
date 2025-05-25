@@ -1,11 +1,14 @@
 import React from 'react';
-import { Edit3, Trash2 } from 'lucide-react';
+import { UserPlus, Edit3, Trash2 } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 
-const LandlordTenantsView = ({ tenants, onEdit, onDelete, leases, houses }) => (
+const LandlordTenantsView = ({ tenants, onAdd, onEdit, onDelete, leases, houses }) => (
     <Card title="Manage Tenants">
-        <p className="text-sm text-gray-500 mb-4">Tenants are added to the system when they sign up. You can edit their profile details here.</p>
+        <div className="flex justify-between items-center mb-6">
+            <p className="text-sm text-gray-500">Create and manage your tenants here.</p>
+            <Button onClick={onAdd} icon={UserPlus}>Add New Tenant</Button>
+        </div>
         {tenants.length === 0 ? <p className="text-gray-500">No tenants found.</p> : (
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
