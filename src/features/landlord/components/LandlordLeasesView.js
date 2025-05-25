@@ -2,7 +2,7 @@ import React from 'react';
 import { FilePlus, Edit3, Trash2 } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { formatDate, formatCurrency } from '../../../utils/helpers';
+import { formatDate, formatCurrency, calculateDaysRemaining, getLeaseStatusColor } from '../../../utils/helpers';
 
 const LandlordLeasesView = ({ leases, tenants, houses, onAdd, onEdit, onDelete }) => (
     <Card title="Manage Leases">
@@ -17,25 +17,35 @@ const LandlordLeasesView = ({ leases, tenants, houses, onAdd, onEdit, onDelete }
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rent</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates (Start - End)</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Left</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {leases.map(lease => {
-                            const house = Array.isArray(houses) ?
-                            houses.find(h => h.id === lease.house_id) : null;
+                            const house = Array.isArray(houses) ? houses.find(h => h.id === lease.house_id) : null;
                             const tenantProfile = Array.isArray(tenants) ? tenants.find(t => t.id === lease.tenant_id) : null;
                             const statusColor = lease.status === 'active' ? 'text-green-600 bg-green-100' : lease.status === 'pending' ? 'text-yellow-600 bg-yellow-100' : 'text-red-600 bg-red-100';
+                            const daysRemaining = calculateDaysRemaining(lease.lease_end_date);
+                            const daysColor = getLeaseStatusColor(daysRemaining);
+                            
                             return (
                                 <tr key={lease.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{house ? house.name : 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{lease.room_or_unit_id}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{tenantProfile ? tenantProfile.name : 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatCurrency(lease.rent_amount)}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatDate(lease.lease_start_date)} - {formatDate(lease.lease_end_date)}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {formatDate(lease.lease_start_date)} - {formatDate(lease.lease_end_date)}
+                                    </td>
+                                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${daysColor}`}>
+                                        {daysRemaining} days
+                                    </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor} capitalize`}>{lease.status}</span>
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor} capitalize`}>
+                                            {lease.status}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium space-x-2">
                                         <Button onClick={() => onEdit(lease)} icon={Edit3} size="sm" variant="ghost" className="text-yellow-600 hover:text-yellow-700">Edit</Button>

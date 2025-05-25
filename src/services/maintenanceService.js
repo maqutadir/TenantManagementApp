@@ -7,7 +7,10 @@ export const getMaintenanceRequestsForLandlordHouses = async (houseIds) => {
     .from('maintenance_requests')
     .select(`
       *,
-      leases ( room_or_unit_id, houses (name, address) ),
+      leases (
+        room_or_unit_id,
+        houses (name, address)
+      ),
       tenant:profiles!maintenance_requests_tenant_id_fkey (id, name, email)
     `)
     .in('house_id', houseIds)
@@ -21,8 +24,11 @@ export const getMaintenanceRequestsByTenant = async (tenantId) => {
   const { data, error } = await supabase
     .from('maintenance_requests')
     .select(`
-        *, 
-         leases ( room_or_unit_id, houses (name) )
+      *,
+      leases (
+        room_or_unit_id,
+        houses (name)
+      )
     `)
     .eq('tenant_id', tenantId)
     .order('submitted_date', { ascending: false });
@@ -31,18 +37,24 @@ export const getMaintenanceRequestsByTenant = async (tenantId) => {
 
 export const addMaintenanceRequest = async (requestData) => {
   if (!requestData.lease_id || !requestData.house_id || !requestData.tenant_id || !requestData.description) {
-      return { data: null, error: { message: "Lease, House, Tenant IDs, and Description are required."}};
+    return { data: null, error: { message: "Lease, House, Tenant IDs, and Description are required." }};
   }
   const { data, error } = await supabase
     .from('maintenance_requests')
     .insert([requestData])
-    .select();
+    .select(`
+      *,
+      leases (
+        room_or_unit_id,
+        houses (name)
+      )
+    `);
   return { data, error };
 };
 
 export const updateMaintenanceRequestStatus = async (requestId, status, resolutionNotes = null) => {
   const updatePayload = { 
-     status,
+    status,
     resolved_at: status === 'Resolved' || status === 'Closed' ? new Date().toISOString() : null
   };
 
@@ -54,6 +66,12 @@ export const updateMaintenanceRequestStatus = async (requestId, status, resoluti
     .from('maintenance_requests')
     .update(updatePayload)
     .eq('id', requestId)
-    .select();
+    .select(`
+      *,
+      leases (
+        room_or_unit_id,
+        houses (name)
+      )
+    `);
   return { data, error };
 };
