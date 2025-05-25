@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Building, Users, FileText, DollarSign, Wrench } from 'lucide-react';
 import { generateId } from '../utils/helpers';
 import { addHouse, updateHouse, deleteHouse } from '../services/houseService';
-import { updateProfile, deleteProfile } from '../services/profileService';
+import { createTenantProfile, updateProfile, deleteProfile } from '../services/profileService';
 import { addLease, updateLease, deleteLease } from '../services/leaseService';
 import LandlordHousesView from '../features/landlord/components/LandlordHousesView';
 import LandlordTenantsView from '../features/landlord/components/LandlordTenantsView';
@@ -25,22 +25,22 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
     const handleAddOrUpdateHouse = async (houseDataFromForm) => {
         setIsLoading(true);
         let dataToSubmit = { ...houseDataFromForm, landlord_id: currentUser.id };
-         if (dataToSubmit.type === 'Multi-Unit House') {
+        if (dataToSubmit.type === 'Multi-Unit House') {
             dataToSubmit.units = (dataToSubmit.units || []).map(unit => ({ ...unit, id: unit.id || generateId() }));
             dataToSubmit.rooms = null;
-         } else {
-           dataToSubmit.units = null;
-           if(dataToSubmit.rooms === '' || dataToSubmit.rooms === undefined || dataToSubmit.rooms === null){
-            dataToSubmit.rooms = 1;
-           }
+        } else {
+            dataToSubmit.units = null;
+            if(dataToSubmit.rooms === '' || dataToSubmit.rooms === undefined || dataToSubmit.rooms === null){
+                dataToSubmit.rooms = 1;
+            }
         }
         try {
             if (editingHouse) {
-                 const { error } = await updateHouse(editingHouse.id, dataToSubmit);
+                const { error } = await updateHouse(editingHouse.id, dataToSubmit);
                 if (error) throw error;
                 alert('House updated successfully!');
             } else {
-                 const { error } = await addHouse(dataToSubmit);
+                const { error } = await addHouse(dataToSubmit);
                 if (error) throw error;
                 alert('House added successfully!');
             }
@@ -54,14 +54,43 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
         setIsLoading(false);
     };
 
+    const handleAddOrUpdateTenant = async (tenantData) => {
+        setIsLoading(true);
+        try {
+            if (editingTenant) {
+                // Update existing tenant
+                const { error } = await updateProfile(editingTenant.id, {
+                    name: tenantData.name,
+                    phone: tenantData.phone
+                });
+                if (error) throw error;
+                alert('Tenant updated successfully!');
+            } else {
+                // Create new tenant
+                const { data, error } = await createTenantProfile(tenantData, currentUser.id);
+                if (error) throw error;
+                alert('Tenant created successfully!');
+            }
+            fetchAllDataForUser();
+        } catch (error) {
+            console.error('Error saving tenant:', error);
+            alert('Failed to save tenant: ' + error.message);
+        }
+        setShowTenantModal(false);
+        setEditingTenant(null);
+        setIsLoading(false);
+    };
+
     const openEditHouseModal = (house) => { setEditingHouse(house); setShowHouseModal(true); };
     const openAddHouseModal = () => { setEditingHouse(null); setShowHouseModal(true); };
+    const openAddTenantModal = () => { setEditingTenant(null); setShowTenantModal(true); };
+    const openEditTenantModal = (tenant) => { setEditingTenant(tenant); setShowTenantModal(true); };
 
     const handleDeleteHouse = async (houseId) => {
         if (window.confirm("Are you sure you want to delete this house and ALL associated leases? This action cannot be undone.")) {
             setIsLoading(true);
             const { error } = await deleteHouse(houseId);
-             if (error) {
+            if (error) {
                 console.error('Error deleting house:', error);
                 alert('Failed to delete house: ' + error.message);
             } else {
@@ -71,30 +100,6 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
             setIsLoading(false);
         }
     };
-
-    const handleUpdateTenantProfile = async (tenantProfileDataFromForm) => {
-        setIsLoading(true);
-        if (!editingTenant || !editingTenant.id) {
-            alert("Error: No tenant selected for editing.");
-            setIsLoading(false);
-            return;
-        }
-        const dataToUpdate = { name: tenantProfileDataFromForm.name, phone: tenantProfileDataFromForm.phone };
-        try {
-            const { error } = await updateProfile(editingTenant.id, dataToUpdate);
-            if (error) throw error;
-            fetchAllDataForUser();
-            alert('Tenant profile updated successfully!');
-        } catch (error) {
-            console.error('Error updating tenant profile:', error);
-            alert('Failed to update tenant profile: ' + error.message);
-        }
-        setShowTenantModal(false);
-        setEditingTenant(null);
-        setIsLoading(false);
-    };
-
-    const openEditTenantModal = (tenant) => { setEditingTenant(tenant); setShowTenantModal(true); };
 
     const handleDeleteTenantAndLeases = async (tenantProfileId) => {
         if (window.confirm("Are you sure you want to delete this tenant profile AND ALL THEIR LEASES? This is a major action.")) {
@@ -110,7 +115,7 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
                 alert('Failed to delete tenant profile: ' + profileError.message + '. Some leases might have been deleted.');
             } else {
                 fetchAllDataForUser();
-                alert('Tenant profile and associated leases deleted. Auth user may still exist.');
+                alert('Tenant profile and associated leases deleted successfully.');
             }
             setIsLoading(false);
         }
@@ -118,11 +123,11 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
 
     const handleAddOrUpdateLease = async (leaseDataFromForm) => {
         setIsLoading(true);
-        delete leaseDataFromForm.houses
-        delete leaseDataFromForm.tenant
+        delete leaseDataFromForm.houses;
+        delete leaseDataFromForm.tenant;
         const dataToSubmit = { 
-             ...leaseDataFromForm,
-             landlord_id: currentUser.id,
+            ...leaseDataFromForm,
+            landlord_id: currentUser.id,
             rent_amount: parseFloat(leaseDataFromForm.rent_amount) || 0,
             deposit: parseFloat(leaseDataFromForm.deposit) || 0,
         };
@@ -178,29 +183,86 @@ const LandlordDashboardPage = ({ currentUser, houses, tenants, leases, fetchAllD
             <h1 className="text-3xl font-bold text-slate-800 mb-6">Landlord Dashboard</h1>
             <div className="mb-6 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto pb-1" aria-label="Tabs">
-                    {tabs.map(tab => ( <button key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`${
-                            activeTab === tab.id
-                                ? 'border-sky-500 text-sky-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center group`}
-                    >
-                        <tab.icon size={18} className={`mr-2 ${activeTab === tab.id ? 'text-sky-500' : 'text-gray-400 group-hover:text-gray-500'}`} />
-                        {tab.label}
-                    </button> ))}
+                    {tabs.map(tab => (
+                        <button key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`${
+                                activeTab === tab.id
+                                    ? 'border-sky-500 text-sky-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center group`}
+                        >
+                            <tab.icon size={18} className={`mr-2 ${activeTab === tab.id ? 'text-sky-500' : 'text-gray-400 group-hover:text-gray-500'}`} />
+                            {tab.label}
+                        </button>
+                    ))}
                 </nav>
             </div>
-            {activeTab === 'houses' && (<LandlordHousesView houses={houses} onAdd={openAddHouseModal} onEdit={openEditHouseModal} onDelete={handleDeleteHouse} leases={leases} />)}
-            {activeTab === 'tenants' && (<LandlordTenantsView tenants={tenants.filter(t => t.role === 'tenant')} onEdit={openEditTenantModal} onDelete={handleDeleteTenantAndLeases} leases={leases} houses={houses} />)}
-            {activeTab === 'leases' && (<LandlordLeasesView leases={leases} tenants={tenants} houses={houses} onAdd={openAddLeaseModal} onEdit={openEditLeaseModal} onDelete={handleDeleteLease} />)}
-            {activeTab === 'payments' && <LandlordPaymentsView leases={leases} tenants={tenants} houses={houses} setIsLoading={setIsLoading} />}
-            {activeTab === 'maintenance' && <LandlordMaintenanceView leases={leases} tenants={tenants} houses={houses} setIsLoading={setIsLoading} />}
-            <HouseFormModal isOpen={showHouseModal} onClose={() => { setShowHouseModal(false); setEditingHouse(null); }} onSubmit={handleAddOrUpdateHouse} existingHouse={editingHouse} />
-            <TenantFormModal isOpen={showTenantModal} onClose={() => { setShowTenantModal(false);
-                setEditingTenant(null); }} onSubmit={handleUpdateTenantProfile} existingTenant={editingTenant} />
-            <LeaseFormModal isOpen={showLeaseModal} onClose={() => { setShowLeaseModal(false);
-                setEditingLease(null); }} onSubmit={handleAddOrUpdateLease} existingLease={editingLease} houses={houses} tenants={tenants.filter(t => t.role === 'tenant')} />
+            {activeTab === 'houses' && (
+                <LandlordHousesView 
+                    houses={houses} 
+                    onAdd={openAddHouseModal} 
+                    onEdit={openEditHouseModal} 
+                    onDelete={handleDeleteHouse} 
+                    leases={leases} 
+                />
+            )}
+            {activeTab === 'tenants' && (
+                <LandlordTenantsView 
+                    tenants={tenants.filter(t => t.role === 'tenant')} 
+                    onAdd={openAddTenantModal}
+                    onEdit={openEditTenantModal} 
+                    onDelete={handleDeleteTenantAndLeases} 
+                    leases={leases} 
+                    houses={houses} 
+                />
+            )}
+            {activeTab === 'leases' && (
+                <LandlordLeasesView 
+                    leases={leases} 
+                    tenants={tenants} 
+                    houses={houses} 
+                    onAdd={openAddLeaseModal} 
+                    onEdit={openEditLeaseModal} 
+                    onDelete={handleDeleteLease} 
+                />
+            )}
+            {activeTab === 'payments' && (
+                <LandlordPaymentsView 
+                    leases={leases} 
+                    tenants={tenants} 
+                    houses={houses} 
+                    setIsLoading={setIsLoading} 
+                />
+            )}
+            {activeTab === 'maintenance' && (
+                <LandlordMaintenanceView 
+                    leases={leases} 
+                    tenants={tenants} 
+                    houses={houses} 
+                    setIsLoading={setIsLoading} 
+                />
+            )}
+            <HouseFormModal 
+                isOpen={showHouseModal} 
+                onClose={() => { setShowHouseModal(false); setEditingHouse(null); }} 
+                onSubmit={handleAddOrUpdateHouse} 
+                existingHouse={editingHouse} 
+            />
+            <TenantFormModal 
+                isOpen={showTenantModal} 
+                onClose={() => { setShowTenantModal(false); setEditingTenant(null); }} 
+                onSubmit={handleAddOrUpdateTenant} 
+                existingTenant={editingTenant} 
+            />
+            <LeaseFormModal 
+                isOpen={showLeaseModal} 
+                onClose={() => { setShowLeaseModal(false); setEditingLease(null); }} 
+                onSubmit={handleAddOrUpdateLease} 
+                existingLease={editingLease} 
+                houses={houses} 
+                tenants={tenants.filter(t => t.role === 'tenant')} 
+            />
         </div>
     );
 };
