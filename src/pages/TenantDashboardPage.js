@@ -118,6 +118,7 @@ const TenantDashboardPage = ({ currentUser, setIsLoading: setAppIsLoading }) => 
                             </div>
                         </div>
                     ) : <p className="text-gray-500">No active lease found.</p>}
+                    }
                 </Card>
 
                 <Card title="Payments">
@@ -200,6 +201,7 @@ const TenantDashboardPage = ({ currentUser, setIsLoading: setAppIsLoading }) => 
                             ))}
                         </ul>
                     ) : <p className="text-gray-500">No maintenance requests submitted.</p>}
+                    }
                 </Card>
             </div>
 
