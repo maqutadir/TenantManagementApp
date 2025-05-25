@@ -1,12 +1,11 @@
 import React from 'react';
 
-const Select = ({ label, id, value, onChange, options, required = false, className = '', name, error, placeholder: selectPlaceholder }) => {
+const Select = ({ label, id, value, onChange, options, required = false, className = '', name, error, placeholder: selectPlaceholder, disabled = false }) => {
   return (
     <div className="mb-4">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
-        }
       </label>
       <select
         id={id}
@@ -14,6 +13,7 @@ const Select = ({ label, id, value, onChange, options, required = false, classNa
         value={value}
         onChange={onChange}
         required={required}
+        disabled={disabled}
         className={`
           w-full px-3 py-2
           bg-white border
@@ -31,7 +31,6 @@ const Select = ({ label, id, value, onChange, options, required = false, classNa
         ))}
       </select>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      }
     </div>
   );
 };

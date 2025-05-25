@@ -3,7 +3,10 @@ import React from 'react';
 const Textarea = ({ label, id, value, onChange, placeholder, required = false, className = '', name, rows = 3, error }) => {
     return (
         <div className="mb-4">
-            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}{required && <span className="text-red-500">*</span>}</label>
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+                {label}
+                {required && <span className="text-red-500 ml-1">*</span>}
+            </label>
             <textarea
                 id={id}
                 name={name || id}
